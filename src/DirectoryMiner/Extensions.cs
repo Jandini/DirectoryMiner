@@ -4,6 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using Serilog;
+using DirectoryMiner;
 
 internal static class Extensions
 {
@@ -40,6 +41,21 @@ internal static class Extensions
     {
         return services
             // Add services here
+            .AddTransient<DirectoryExcavator>()
             .AddTransient<Main>();
     }
+
+
+    internal static IEnumerable<TSource> GetProgress<TSource>(this IEnumerable<TSource> source, int every, Action<int, TSource> progress)
+    {
+        int count = 0;
+
+        foreach (var item in source)
+        {
+            if ((++count % every) == 0)
+                progress(count, item);
+
+            yield return item;
+        }
+    } 
 }
