@@ -2,7 +2,7 @@
   "profiles": {
     "Run": {
       "commandName": "Project",
-      "commandLineArgs": "--path \"C:\\Temp\""
+      "commandLineArgs": "--path \"D:\\My Folders\""
     },
     "Help": {
       "commandName": "Project",

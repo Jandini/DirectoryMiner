@@ -1,8 +1,9 @@
 ﻿using DirectoryMiner;
 using Microsoft.Extensions.Logging;
-using System.Linq;
+using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
-using System.Xml.Linq;
 using TreeMiner;
 
 internal class Main
@@ -11,6 +12,7 @@ internal class Main
     private readonly DirectoryExcavator _excavator;
 
     const string EMPTY_DIR_HASH = "D41D8CD98F00B204E9800998ECF8427E";
+    const string EMPTY_TREE_HASH = "80404D0C6D24E87F650FF7D1985CD762";
 
     public Main(ILogger<Main> logger, DirectoryExcavator excavator)
     {
@@ -31,24 +33,23 @@ internal class Main
             .ToList();
 
         _logger.LogInformation("Creating parent-child lookup...");
-        var parentChild = artifacts.ToLookup(n => n.ParentId, n => n.Id);
+        var treeLookup = artifacts.ToLookup(n => n.ParentId);
 
 
-        var rootArtifacts = artifacts.Where(a => a.Level == 0).ToList();
+        _logger.LogInformation("Computing tree hash...");
 
-        // Compute TreeHash - foreach artifact, traverse forward and compute TreeHash from all directory artifact hashes
+        foreach (var artifact in artifacts)
+        {
+            var descendants = artifact.Hash + string.Join("", GetDescendants(treeLookup, artifact).Select(a => a.Hash));
+            artifact.TreeHash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(descendants)));
+        }
 
-
-
-        //foreach (var rootArtifact in rootArtifacts) {
-        //    TraverseForward(parentChild, rootArtifact);
-        //}
 
 
 
 
         _logger.LogInformation("Finding leaf artifacts...");
-        var leafNodes = artifacts.Where(n => !parentChild.Contains(n.Id)).ToArray();
+        var leafNodes = artifacts.Where(n => !treeLookup.Contains(n.Id)).ToArray();
 
 
         var artifactDictionary = new Dictionary<string, List<DirectoryArtifact>>();
@@ -57,11 +58,11 @@ internal class Main
         _logger.LogInformation("Building artifact dictionary...");
         foreach (var artifact in artifacts) {
 
-            if (!artifactDictionary.ContainsKey(artifact.Hash))
-                artifactDictionary[artifact.Hash] = new List<DirectoryArtifact> { artifact };
+            if (!artifactDictionary.ContainsKey(artifact.TreeHash))
+                artifactDictionary[artifact.TreeHash] = new List<DirectoryArtifact> { artifact };
             else
             {
-                artifactDictionary[artifact.Hash].Add(artifact);                
+                artifactDictionary[artifact.TreeHash].Add(artifact);                
             }
         }
         
@@ -73,47 +74,41 @@ internal class Main
         }
 
         _logger.LogInformation("Saving artifacts...");
-        File.WriteAllText($"{rootDir.Name}.json", JsonSerializer.Serialize(artifacts.OrderBy(a => a.Hash).ThenBy(a => a.Level), new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText($"{rootDir.Name}.json", JsonSerializer.Serialize(artifacts.OrderBy(a => a.TreeHash).ThenBy(a => a.Level), new JsonSerializerOptions { WriteIndented = true }));
         
 
         _logger.LogInformation("Saving unique artifacts without empty folders...");
-        File.WriteAllText($"{rootDir.Name}_unique.json", JsonSerializer.Serialize(artifactDictionary.Where(a=>a.Key != EMPTY_DIR_HASH).OrderByDescending(a => a.Value.Count), new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText($"{rootDir.Name}_unique.json", JsonSerializer.Serialize(artifactDictionary.Where(a => a.Key != EMPTY_TREE_HASH).OrderBy(a => a.Value.Count), new JsonSerializerOptions { WriteIndented = true }));
 
 
         _logger.LogInformation("Calculating statistics...");
 
-        var distinct = artifacts.GroupBy(a => a.Hash);
+        var distinct = artifacts.GroupBy(a => a.TreeHash);
 
         var lowest = distinct
             .Select(g => g.OrderBy(d => d.Level));
 
-        var empty = artifacts.Where(a => a.Hash == EMPTY_DIR_HASH);
+        var empty = artifacts.Where(a => a.TreeHash == EMPTY_TREE_HASH);
 
         _logger.LogInformation("Found {dirs} directories | {count} errors | {unique} unique | {empty} empty ", artifacts.Count(), _excavator.GetAggregateException().InnerExceptions.Count, distinct.Count(), empty.Count());
 
     }
 
-    public void TraverseBackward(Dictionary<Guid, Guid> childParentDict, Guid currentNode)
-    {
-        Console.WriteLine("Current Node: " + currentNode);
 
-        if (childParentDict.ContainsKey(currentNode))
+
+    public IEnumerable<DirectoryArtifact> GetDescendants(ILookup<Guid, DirectoryArtifact> treeLookup, DirectoryArtifact artifact)
+    {        
+        if (treeLookup.Contains(artifact.Id))
         {
-            Guid parentNode = childParentDict[currentNode];
-            TraverseBackward(childParentDict, parentNode);
-        }
-    }
-
-    public void TraverseForward(ILookup<Guid, Guid> parentChildDict, DirectoryArtifact artifact)
-    {
-        if (parentChildDict.Contains(artifact.Id))
-        {
-            var childNodes = parentChildDict[artifact.Id];
-
-            foreach (var childNode in childNodes)
+            foreach (var childArtifact in treeLookup[artifact.Id])
             {
-                TraverseForward(parentChildDict, parentChildDict[ childNode);
+                yield return childArtifact;
+
+                foreach (var descendant in GetDescendants(treeLookup, childArtifact))
+                    yield return descendant;
+
             }
-        }
+        }        
     }
+
 }
