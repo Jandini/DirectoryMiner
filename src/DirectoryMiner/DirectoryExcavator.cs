@@ -16,7 +16,7 @@ namespace DirectoryMiner
         }
 
         public IEnumerable<FileSystemInfo> GetArtifacts(DirectoryInfo dirArtifact) => dirArtifact.GetFileSystemInfos();
-        public AggregateException GetAggregateException() => new AggregateException(_exceptions);
+        public AggregateException GetAggregateException() => new(_exceptions);
 
         public bool OnDirArtifact(DirectoryArtifact dirArtifact, IEnumerable<FileSystemInfo> dirContent)
         {

@@ -11,8 +11,20 @@ namespace DirectoryMiner
         
         [JsonIgnore]
         public object Info { get; set; }
+
+        /// <summary>
+        /// Hash of all artifacts in current directory artifact.
+        /// </summary>
         public string Hash { get; set; }
 
+        /// <summary>
+        /// Hash of all descendant artifacts.
+        /// </summary>
+        public string TreeHash { get; set; }
+
+        /// <summary>
+        /// Full path to the directory artifact.
+        /// </summary>
         public string Path { get => (Info as FileSystemInfo)?.FullName; }
     }
 }

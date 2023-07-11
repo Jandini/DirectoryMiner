@@ -1,6 +1,8 @@
 ﻿using DirectoryMiner;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Text.Json;
+using System.Xml.Linq;
 using TreeMiner;
 
 internal class Main
@@ -21,14 +23,34 @@ internal class Main
 
         var rootDir = new DirectoryInfo(path);
         var fileSystemMiner = new GenericTreeMiner<DirectoryArtifact, FileSystemInfo, FileInfo, DirectoryInfo>();
-        var rootArtifact = fileSystemMiner.GetRootArtifact(rootDir);
+        var rootArtifact = fileSystemMiner.GetRootArtifact(rootDir, -1);
         var dirArtifacts = fileSystemMiner.GetArtifacts(rootArtifact, _excavator, new ArtifactOptions() { ArtifactType = ArtifactType.Directories });
-
 
         var artifacts = dirArtifacts
             .GetProgress(1024, (count, item) => { _logger.LogInformation("Found {dir} directories in {path:l}", count, rootDir.Name); Console.Title = (item.Info as FileSystemInfo).FullName; })
             .ToList();
-        
+
+        _logger.LogInformation("Creating parent-child lookup...");
+        var parentChild = artifacts.ToLookup(n => n.ParentId, n => n.Id);
+
+
+        var rootArtifacts = artifacts.Where(a => a.Level == 0).ToList();
+
+        // Compute TreeHash - foreach artifact, traverse forward and compute TreeHash from all directory artifact hashes
+
+
+
+        //foreach (var rootArtifact in rootArtifacts) {
+        //    TraverseForward(parentChild, rootArtifact);
+        //}
+
+
+
+
+        _logger.LogInformation("Finding leaf artifacts...");
+        var leafNodes = artifacts.Where(n => !parentChild.Contains(n.Id)).ToArray();
+
+
         var artifactDictionary = new Dictionary<string, List<DirectoryArtifact>>();
 
 
@@ -69,5 +91,29 @@ internal class Main
 
         _logger.LogInformation("Found {dirs} directories | {count} errors | {unique} unique | {empty} empty ", artifacts.Count(), _excavator.GetAggregateException().InnerExceptions.Count, distinct.Count(), empty.Count());
 
+    }
+
+    public void TraverseBackward(Dictionary<Guid, Guid> childParentDict, Guid currentNode)
+    {
+        Console.WriteLine("Current Node: " + currentNode);
+
+        if (childParentDict.ContainsKey(currentNode))
+        {
+            Guid parentNode = childParentDict[currentNode];
+            TraverseBackward(childParentDict, parentNode);
+        }
+    }
+
+    public void TraverseForward(ILookup<Guid, Guid> parentChildDict, DirectoryArtifact artifact)
+    {
+        if (parentChildDict.Contains(artifact.Id))
+        {
+            var childNodes = parentChildDict[artifact.Id];
+
+            foreach (var childNode in childNodes)
+            {
+                TraverseForward(parentChildDict, parentChildDict[ childNode);
+            }
+        }
     }
 }
