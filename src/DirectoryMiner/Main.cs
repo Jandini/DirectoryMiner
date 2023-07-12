@@ -40,7 +40,7 @@ internal class Main
 
         foreach (var artifact in artifacts)
         {
-            var descendants = artifact.Hash + string.Join("", GetDescendants(treeLookup, artifact).Select(a => a.Hash));
+            var descendants = artifact.Hash + string.Join("", GetDescendants(treeLookup, artifact).OrderBy(a => a.Hash).Select(a => a.Hash));
             artifact.TreeHash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(descendants)));
         }
 
