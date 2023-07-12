@@ -4,7 +4,7 @@
     {
         public int Compare(DirectoryArtifact x, DirectoryArtifact y)
         {
-            return string.Compare(x.Path, y.Path, StringComparison.OrdinalIgnoreCase);
+            return string.Compare(x.TreePath, y.TreePath, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

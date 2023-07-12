@@ -22,9 +22,15 @@ namespace DirectoryMiner
         /// </summary>
         public string TreeHash { get; set; }
 
+
+        public string FullPath { get => (Info as FileSystemInfo)?.FullName; }
+
+
+        public string RootPath { get => string.Join(Path.DirectorySeparatorChar, (Info as FileSystemInfo)?.FullName.Split(Path.DirectorySeparatorChar).Take(Level)); }
+
         /// <summary>
         /// Full path to the directory artifact.
         /// </summary>
-        public string Path { get => (Info as FileSystemInfo)?.FullName; }
+        public string TreePath { get => string.Join(Path.DirectorySeparatorChar, (Info as FileSystemInfo)?.FullName.Split(Path.DirectorySeparatorChar).Skip(Level)); }
     }
 }
