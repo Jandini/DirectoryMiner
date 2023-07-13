@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Drawing;
 using System.Security.Cryptography;
 using System.Text;
 using TreeMiner;
@@ -20,8 +21,17 @@ namespace DirectoryMiner
 
         public bool OnDirArtifact(DirectoryArtifact dirArtifact, IEnumerable<FileSystemInfo> dirContent)
         {
-            var list = string.Join(';', dirContent.OrderBy(a => a.Name).Select(s => string.Join(',', s.Name, (s as FileInfo)?.Length ?? 0)));
-            dirArtifact.Hash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(list)));
+            string content = string.Empty;
+            if (dirContent.Any()) {
+                content = string.Join(';', dirContent.OrderBy(a => a.Name).Select(s => string.Join(',', s.Name, (s as FileInfo)?.Length ?? 0)));
+            }
+            else
+            {
+                // content = (dirArtifact.Info as FileSystemInfo).Name;
+                content = string.Empty;
+            }
+
+            dirArtifact.Hash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(content)));
             return true;
         }
 

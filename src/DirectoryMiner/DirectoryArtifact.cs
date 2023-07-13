@@ -12,6 +12,8 @@ namespace DirectoryMiner
         [JsonIgnore]
         public object Info { get; set; }
 
+        public DateTime LastWriteTimeUtc { get => (Info as FileSystemInfo).LastWriteTimeUtc; }
+
         /// <summary>
         /// Hash of all artifacts in current directory artifact.
         /// </summary>
@@ -22,6 +24,8 @@ namespace DirectoryMiner
         /// </summary>
         public string TreeHash { get; set; }
 
+        public string Name { get => (Info as FileSystemInfo)?.Name; }
+
 
         public string FullPath { get => (Info as FileSystemInfo)?.FullName; }
 
@@ -31,6 +35,7 @@ namespace DirectoryMiner
         /// <summary>
         /// Full path to the directory artifact.
         /// </summary>
-        public string TreePath { get => string.Join(Path.DirectorySeparatorChar, (Info as FileSystemInfo)?.FullName.Split(Path.DirectorySeparatorChar).Skip(Level)); }
+        //public string TreePath { get => string.Join(Path.DirectorySeparatorChar, (Info as FileSystemInfo)?.FullName.Split(Path.DirectorySeparatorChar).Skip(Level)); }
+        public string TreePath { get; set; }
     }
 }

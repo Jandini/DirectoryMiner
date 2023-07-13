@@ -40,7 +40,12 @@ internal class Main
 
         foreach (var artifact in artifacts)
         {
+
             var descendants = artifact.Hash + string.Join("", GetDescendants(treeLookup, artifact).OrderBy(a => a.Hash).Select(a => a.Hash));
+
+            artifact.TreePath = string.Join(Path.DirectorySeparatorChar, GetDescendants(treeLookup, artifact).Select(a => a.Name));
+
+            // Create path backward !!!
             artifact.TreeHash = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(descendants)));
         }
 
@@ -79,6 +84,7 @@ internal class Main
 
         _logger.LogInformation("Saving unique artifacts without empty folders...");
         File.WriteAllText($"{rootDir.Name}_unique.json", JsonSerializer.Serialize(artifactDictionary.Where(a => a.Key != EMPTY_TREE_HASH).OrderBy(a => a.Value.Count), new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText($"{rootDir.Name}_unique_empty.json", JsonSerializer.Serialize(artifactDictionary.OrderBy(a => a.Value.Count), new JsonSerializerOptions { WriteIndented = true }));
 
 
         _logger.LogInformation("Calculating statistics...");
